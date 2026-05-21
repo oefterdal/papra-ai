@@ -111,7 +111,7 @@ Published images are intended to be pulled from GitHub Container Registry:
 ```yaml
 services:
   papra-ai:
-    image: ghcr.io/<github-owner>/papra-ai:latest
+    image: ghcr.io/oefterdal/papra-ai:latest
     container_name: papra-ai
     restart: unless-stopped
     env_file:
