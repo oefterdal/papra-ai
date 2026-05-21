@@ -1,10 +1,6 @@
-FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS builder
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app/src \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
+ENV UV_LINK_MODE=copy \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
@@ -12,12 +8,21 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY src ./src
-COPY README.md .env.example ./
+FROM python:3.14-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/src \
+    PATH="/app/.venv/bin:$PATH"
+
+WORKDIR /app
 
 RUN groupadd --system app \
-    && useradd --system --gid app --home-dir /app app \
-    && chown -R app:app /app
+    && useradd --system --gid app --home-dir /app app
+
+COPY --from=builder /app/.venv ./.venv
+COPY src ./src
+COPY README.md .env.example ./
 
 USER app
 
