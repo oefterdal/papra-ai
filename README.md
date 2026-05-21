@@ -34,6 +34,8 @@ Variables:
 - `PAPRA_WEBHOOK_SECRET`, required
 - `OLLAMA_BASE_URL`, default `http://ollama:11434`
 - `OLLAMA_MODEL`, default `minicpm-v:8b`
+- `PDF_MAX_PAGES`, default `10`
+- `PDF_RENDER_DPI`, default `150`
 - `LOG_LEVEL`, default `INFO`
 - `PAPRA_AI_TAG_COLOR`, default `#5B8DEF`
 - `PAPRA_AI_ENV_FILE`, default `.env`
@@ -60,10 +62,11 @@ Then set `OLLAMA_MODEL` to the model name you want to use. Other vision-capable
 Ollama models can be used as long as they support the `/api/generate` `images`
 field.
 
-Vision input is currently sent to Ollama for image files. PDFs and other
+Vision input is sent to Ollama for image files and rendered PDF pages. PDF
+rendering is bounded by `PDF_MAX_PAGES` and `PDF_RENDER_DPI`; lower these values
+when Ollama hardware or document volume needs a smaller vision request. Other
 non-image files are enriched from the filename and Papra's existing extracted
-content; scanned PDFs with little or no extracted text will need PDF rendering
-support before the vision model can inspect their pages.
+content.
 
 ## Run Locally
 

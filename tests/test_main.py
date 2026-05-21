@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
+import pymupdf
 from fastapi import BackgroundTasks, HTTPException, Request
 
 os.environ.setdefault("PAPRA_API_TOKEN", "test-api-token")
@@ -17,8 +18,10 @@ import main
 import webhooks
 from config import Settings
 from enrichment import (
+    document_vision_images,
     handle_document_created,
     is_image_filename,
+    is_pdf_filename,
 )
 from main import enrich_document_in_background, health, papra_webhook
 from webhooks import (
@@ -70,6 +73,33 @@ class MainHelpersTest(unittest.TestCase):
     def test_is_image_filename(self) -> None:
         self.assertTrue(is_image_filename("receipt.PNG"))
         self.assertFalse(is_image_filename("invoice.pdf"))
+
+    def test_is_pdf_filename(self) -> None:
+        self.assertTrue(is_pdf_filename("invoice.PDF"))
+        self.assertFalse(is_pdf_filename("receipt.png"))
+
+    def test_document_vision_images_renders_limited_pdf_pages(self) -> None:
+        document = pymupdf.open()
+        for page_number in range(3):
+            page = document.new_page()
+            page.insert_text((72, 72), f"Page {page_number + 1}")
+        pdf_bytes = document.tobytes()
+        document.close()
+
+        images = document_vision_images(
+            file_bytes=pdf_bytes,
+            filename="invoice.pdf",
+            settings=Settings(
+                papra_api_token="token",
+                papra_webhook_secret="secret",
+                pdf_max_pages=2,
+                pdf_render_dpi=72,
+                _env_file=None,
+            ),
+        )
+
+        self.assertEqual(len(images), 2)
+        self.assertTrue(all(image.startswith(b"\x89PNG") for image in images))
 
 
 class WebhookTest(unittest.IsolatedAsyncioTestCase):

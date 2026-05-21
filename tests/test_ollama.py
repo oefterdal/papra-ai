@@ -1,6 +1,8 @@
+import base64
 import unittest
+from unittest.mock import AsyncMock, Mock
 
-from ollama import build_analysis_prompt, parse_extracted_document
+from ollama import OllamaClient, build_analysis_prompt, parse_extracted_document
 
 
 class ParseExtractedDocumentTest(unittest.TestCase):
@@ -75,6 +77,38 @@ class ParseExtractedDocumentTest(unittest.TestCase):
     def test_parse_rejects_non_json(self) -> None:
         with self.assertRaises(ValueError):
             parse_extracted_document("not json", fallback_title="fallback.jpg")
+
+
+class FakeOllamaResponse:
+    def raise_for_status(self) -> None:
+        pass
+
+    def json(self) -> dict[str, str]:
+        return {"response": '{"title": "Receipt"}'}
+
+
+class OllamaClientTest(unittest.IsolatedAsyncioTestCase):
+    async def test_generate_sends_multiple_images(self) -> None:
+        client = OllamaClient("http://ollama:11434", "vision")
+        client.client = Mock()
+        client.client.post = AsyncMock(return_value=FakeOllamaResponse())
+
+        response = await client.generate("prompt", [b"page-1", b"page-2"])
+
+        self.assertEqual(response, '{"title": "Receipt"}')
+        client.client.post.assert_awaited_once_with(
+            "http://ollama:11434/api/generate",
+            json={
+                "model": "vision",
+                "prompt": "prompt",
+                "stream": False,
+                "format": "json",
+                "images": [
+                    base64.b64encode(b"page-1").decode("utf-8"),
+                    base64.b64encode(b"page-2").decode("utf-8"),
+                ],
+            },
+        )
 
 
 if __name__ == "__main__":

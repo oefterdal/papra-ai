@@ -81,7 +81,11 @@ class OllamaClient:
     async def aclose(self) -> None:
         await self.client.aclose()
 
-    async def generate(self, prompt: str, image_bytes: bytes | None = None) -> str:
+    async def generate(
+        self,
+        prompt: str,
+        image_bytes_list: Sequence[bytes] | None = None,
+    ) -> str:
         request: dict[str, Any] = {
             "model": self.model,
             "prompt": prompt,
@@ -89,8 +93,11 @@ class OllamaClient:
             "format": "json",
         }
 
-        if image_bytes is not None:
-            request["images"] = [base64.b64encode(image_bytes).decode("utf-8")]
+        if image_bytes_list:
+            request["images"] = [
+                base64.b64encode(image_bytes).decode("utf-8")
+                for image_bytes in image_bytes_list
+            ]
 
         response = await self.client.post(
             f"{self.base_url}/api/generate",
@@ -153,7 +160,7 @@ async def analyze_with_ollama(
     filename: str,
     existing_content: str | None,
     available_tags: Sequence[Mapping[str, Any]],
-    use_image: bool,
+    vision_images: Sequence[bytes],
 ) -> ExtractedDocument:
     prompt = build_analysis_prompt(
         filename=filename,
@@ -162,7 +169,7 @@ async def analyze_with_ollama(
     )
     raw_response = await client.generate(
         prompt=prompt,
-        image_bytes=file_bytes if use_image else None,
+        image_bytes_list=vision_images,
     )
 
     return parse_extracted_document(raw_response, fallback_title=filename)

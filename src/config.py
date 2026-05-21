@@ -1,4 +1,5 @@
 import os
+from typing import Any, cast
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -16,6 +17,8 @@ class Settings(BaseSettings):
     papra_webhook_secret: str
     ollama_base_url: str = "http://ollama:11434"
     ollama_model: str = "minicpm-v:8b"
+    pdf_max_pages: int = Field(default=10, ge=1)
+    pdf_render_dpi: int = Field(default=150, ge=72, le=300)
     log_level: str = Field(
         default="INFO",
         pattern=r"^(CRITICAL|ERROR|WARNING|INFO|DEBUG)$",
@@ -27,4 +30,5 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    return Settings(**{"_env_file": os.getenv("PAPRA_AI_ENV_FILE", ".env")})
+    env_file = cast(Any, {"_env_file": os.getenv("PAPRA_AI_ENV_FILE", ".env")})
+    return Settings(**env_file)

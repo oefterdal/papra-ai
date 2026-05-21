@@ -5,11 +5,13 @@ import httpx
 from config import Settings
 from ollama import OllamaClient, analyze_with_ollama
 from papra import PapraClient
+from pdfs import render_pdf_pages
 from webhooks import PapraWebhookEvent
 
 logger = logging.getLogger(__name__)
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tiff", ".tif"}
+PDF_EXTENSIONS = {".pdf"}
 
 
 async def handle_document_created(
@@ -23,6 +25,11 @@ async def handle_document_created(
     document = await papra.get_document(org_id, document_id)
     file_bytes = await papra.get_document_file(org_id, document_id)
     available_tags = await papra.list_tags(org_id)
+    vision_images = document_vision_images(
+        file_bytes=file_bytes,
+        filename=document["name"],
+        settings=settings,
+    )
 
     try:
         extracted = await analyze_with_ollama(
@@ -31,7 +38,7 @@ async def handle_document_created(
             filename=document["name"],
             existing_content=document.get("content"),
             available_tags=available_tags,
-            use_image=is_image_filename(document["name"]),
+            vision_images=vision_images,
         )
     except httpx.HTTPError as exc:
         logger.warning(
@@ -79,3 +86,27 @@ async def handle_document_created(
 def is_image_filename(filename: str) -> bool:
     lower = filename.lower()
     return any(lower.endswith(extension) for extension in IMAGE_EXTENSIONS)
+
+
+def is_pdf_filename(filename: str) -> bool:
+    lower = filename.lower()
+    return any(lower.endswith(extension) for extension in PDF_EXTENSIONS)
+
+
+def document_vision_images(
+    *,
+    file_bytes: bytes,
+    filename: str,
+    settings: Settings,
+) -> list[bytes]:
+    if is_image_filename(filename):
+        return [file_bytes]
+
+    if is_pdf_filename(filename):
+        return render_pdf_pages(
+            file_bytes,
+            max_pages=settings.pdf_max_pages,
+            dpi=settings.pdf_render_dpi,
+        )
+
+    return []
