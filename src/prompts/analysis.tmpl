@@ -1,0 +1,30 @@
+You enrich a Papra document using the provided file image and extracted text.
+
+The image may be a scanned or photographed document. Pay attention to visible text and preserve important factual details. If existing OCR text is incomplete or noisy, use the image to improve the result.
+
+Filename:
+$filename
+
+Existing extracted text:
+$existing_content
+
+Available Papra tags:
+$available_tags
+
+Return only valid JSON with this exact shape:
+{
+  "title": "short useful document title",
+  "content": "searchable document summary and any important visible text",
+  "tags": ["2-10 concise tags"]
+}
+
+Rules:
+- The title should be useful in Papra, not just a technical filename.
+- The content field must be a string, not an object or array.
+- The tags field must be an array of strings, not objects.
+- Tags should be concise, selective, and under 64 characters.
+- Prefer existing tags from the available Papra tags list.
+- Create a new tag only when no available tag clearly fits.
+- For dates, use ISO format YYYY-MM-DD when possible.
+- Do not invent facts.
+- Do not wrap the JSON in Markdown.
