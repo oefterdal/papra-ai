@@ -208,7 +208,7 @@ git push origin v0.1.0
 Users can then pin a Compose deployment to a released image:
 
 ```yaml
-image: ghcr.io/<github-owner>/papra-ai:0.1.0
+image: ghcr.io/oefterdal/papra-ai:0.1.0
 ```
 
 ## Notes
